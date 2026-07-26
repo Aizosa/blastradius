@@ -115,7 +115,7 @@ python -m unittest discover -s tests       # or: pytest
 
 ## Status & roadmap
 
-MVP, single-machine CLI. Next: `--include-home` to scan `~/.claude`, `~/.gitconfig`, global npm/pip config; a `--baseline` file to accept known-good findings; a team dashboard + org policy that turns "did anyone merge a new auto-run point this week" into a review gate.
+MVP, single-machine CLI. Next: `--include-home` to scan `~/.claude`, `~/.gitconfig`, and global npm/pip config; a `--baseline` file to accept known-good findings; and more detectors from the threat catalog. Contributions and new vector reports welcome.
 
 ## License
 
