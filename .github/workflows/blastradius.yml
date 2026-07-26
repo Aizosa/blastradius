@@ -1,0 +1,17 @@
+name: blastradius
+on: [push, pull_request]
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run test suite
+        run: python -m unittest discover -s tests
+      - name: BlastRadius self-scan (SARIF)
+        run: python -m blastradius . --exclude fixtures -f sarif > blastradius.sarif || true
+      - name: BlastRadius gate
+        # our own repo must stay clean of high/critical auto-run points
+        run: python -m blastradius . --exclude fixtures --fail-on high --min-severity high

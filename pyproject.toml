@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "blastradius-scan"
+version = "0.1.0"
+description = "Find every place an AI agent — or the repo itself — can run code without your explicit approval."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+keywords = ["security", "ai-agent", "supply-chain", "static-analysis", "auto-execution", "sast"]
+authors = [{ name = "BlastRadius" }]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Topic :: Security",
+  "Programming Language :: Python :: 3",
+]
+dependencies = []  # stdlib-only by design: a security tool you can vendor and audit.
+
+[project.scripts]
+blastradius = "blastradius.cli:main"
+br = "blastradius.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/blastradius/blastradius"
+
+[tool.setuptools]
+packages = ["blastradius", "blastradius.detectors"]
+
+[tool.setuptools.package-data]
+blastradius = ["py.typed"]

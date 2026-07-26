@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# venvs
+.venv/
+venv/
+env/
+
+# generated fixture trees (recreate with: python fixtures/_gen.py)
+fixtures/malicious-repo/
+fixtures/clean-repo/
+
+# editor / OS
+.DS_Store
+*.swp
