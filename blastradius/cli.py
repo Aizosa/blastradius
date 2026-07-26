@@ -67,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
         if cfg_path:
             try:
                 cfg = _policy.load_config(cfg_path)
-            except (ValueError, OSError) as e:
+            except (ValueError, OSError, TypeError) as e:
                 print(f"blastradius: bad config {cfg_path}: {e}", file=sys.stderr)
                 return 2
         elif args.config:
@@ -94,7 +94,11 @@ def main(argv: list[str] | None = None) -> int:
 
     # 3. write-baseline short-circuits
     if args.write_baseline:
-        n = _baseline.write_baseline(result, args.write_baseline)
+        try:
+            n = _baseline.write_baseline(result, args.write_baseline)
+        except OSError as e:
+            print(f"blastradius: cannot write baseline {args.write_baseline}: {e}", file=sys.stderr)
+            return 2
         print(f"blastradius: wrote baseline with {n} accepted finding(s) to {args.write_baseline}",
               file=sys.stderr)
         return 0
@@ -103,14 +107,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.baseline:
         try:
             accepted = _baseline.load_baseline(args.baseline)
-        except (OSError, ValueError) as e:
+        except (OSError, ValueError, TypeError, AttributeError) as e:
             print(f"blastradius: bad baseline {args.baseline}: {e}", file=sys.stderr)
             return 2
         result.findings, suppressed = _baseline.apply_baseline(result.findings, accepted)
         if suppressed and not args.quiet:
             print(f"blastradius: baseline suppressed {suppressed} known finding(s)", file=sys.stderr)
 
-    # 5. min-severity filter
+    # findings after baseline — used for the CI gate (min-severity is display-only)
+    gate_findings = list(result.findings)
+
+    # 5. min-severity filter (affects the report only, never the exit code)
     min_sev = _sev(_resolve(args.min_severity, cfg.min_severity, "low"))
     result.findings = [f for f in result.findings if f.effective_severity >= min_sev]
 
@@ -126,11 +133,12 @@ def main(argv: list[str] | None = None) -> int:
         else:
             renderers[args.format](result, sys.stdout)
 
-    # 7. exit code
+    # 7. exit code — gated on the post-baseline findings, independent of --min-severity
     fail_on = _resolve(args.fail_on, cfg.fail_on, "high")
     if fail_on == "never":
         return 0
-    return 1 if result.count_at_or_above(_sev(fail_on)) else 0
+    threshold = _sev(fail_on)
+    return 1 if any(f.effective_severity >= threshold for f in gate_findings) else 0
 
 
 if __name__ == "__main__":

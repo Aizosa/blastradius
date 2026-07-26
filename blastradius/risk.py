@@ -65,7 +65,9 @@ _SPECS: list[tuple[str, str, int, str, str]] = [
         "Exfiltrates data over the network",
         4,
         "POSTs local files/output to a remote host — data theft.",
-        r"(?:curl|wget|nc|http)[^\n]*(?:--data|-d\b|-F\b|--upload-file|-T\b|POST)[^\n]*(?:https?://|\d+\.\d+\.\d+\.\d+)",
+        r"(?:curl|wget|nc\b|Invoke-RestMethod|httpie)[^\n]{0,200}?"
+        r"(?:--data|--data-binary|\s-d\b|\s-F\b|--upload-file|\s-T\b|POST)[^\n]{0,200}?"
+        r"(?:https?://|\d{1,3}(?:\.\d{1,3}){3})",
     ),
     (
         "destructive",

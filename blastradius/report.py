@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from typing import TextIO
 
 from .models import Severity
@@ -190,7 +191,7 @@ def render_markdown(result: ScanResult, out: TextIO) -> None:
 
     for f in findings:
         sev = f.effective_severity
-        loc = f.path + (f":{f.line}" if f.line else "")
+        loc = html.escape(f.path) + (f":{f.line}" if f.line else "")
         out.write(f"<details><summary>{_MD_ICON[sev]} <strong>{sev.label}</strong> — "
                   f"{html.escape(f.title)} <code>{loc}</code></summary>\n\n")
         out.write(f"- **Trigger:** {html.escape(f.trigger)}\n")
@@ -201,7 +202,11 @@ def render_markdown(result: ScanResult, out: TextIO) -> None:
             out.write("- **Signals:** " + ", ".join(f"{a.name} (+{a.weight})" for a in f.amplifiers) + "\n")
         out.write(f"- **Fix:** {html.escape(f.remediation)}\n")
         if f.snippet:
-            out.write("\n```\n" + f.snippet + "\n```\n")
+            # fence must be longer than any backtick run inside the snippet
+            runs = re.findall(r"`+", f.snippet)
+            ticks = max(3, (max((len(r) for r in runs), default=0) + 1))
+            fence = "`" * ticks
+            out.write("\n" + fence + "\n" + f.snippet + "\n" + fence + "\n")
         out.write("\n</details>\n\n")
 
     out.write(f"---\n<sub>BlastRadius is free & donation-funded — [support]({SPONSOR_URL})</sub>\n")

@@ -6,7 +6,7 @@
   "//ignore_vectors": "Suppress an entire detector class you've reviewed and accept.",
   "ignore_vectors": ["go-generate"],
 
-  "//severity_overrides": "Your policy's final say on a vector's gate severity.",
+  "//severity_overrides": "Set a vector's baseline severity. Code-behaviour amplifiers can still escalate ABOVE it — policy can raise a floor but not silence a live RCE.",
   "severity_overrides": { "npm-lifecycle-script": "high" },
 
   "min_severity": "low",

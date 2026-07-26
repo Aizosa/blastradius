@@ -52,16 +52,42 @@ def load_config(path: str | Path) -> Config:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError("config root must be a JSON object")
+
+    def _list(key):
+        v = data.get(key, []) or []
+        if not isinstance(v, list):
+            raise ValueError(f"'{key}' must be a list")
+        return list(v)
+
+    def _dict(key):
+        v = data.get(key, {}) or {}
+        if not isinstance(v, dict):
+            raise ValueError(f"'{key}' must be an object")
+        return dict(v)
+
+    for skey in ("min_severity", "fail_on"):
+        if data.get(skey) is not None and not isinstance(data.get(skey), str):
+            raise ValueError(f"'{skey}' must be a string")
+
     return Config(
-        exclude=list(data.get("exclude", []) or []),
-        ignore_vectors=list(data.get("ignore_vectors", []) or []),
-        ignore_fingerprints=list(data.get("ignore_fingerprints", []) or []),
-        severity_overrides=dict(data.get("severity_overrides", {}) or {}),
+        exclude=_list("exclude"),
+        ignore_vectors=_list("ignore_vectors"),
+        ignore_fingerprints=_list("ignore_fingerprints"),
+        severity_overrides=_dict("severity_overrides"),
         min_severity=data.get("min_severity"),
         fail_on=data.get("fail_on"),
-        custom_rules=list(data.get("custom_rules", []) or []),
+        custom_rules=_list("custom_rules"),
         source=str(path),
     )
+
+
+def _glob_match(rel_posix: str, base: str, pattern: str) -> bool:
+    """fnmatch, but tolerant of a leading ``**/`` (which otherwise never
+    matches repo-root files) and always also tries the basename."""
+    cands = {pattern}
+    if pattern.startswith("**/"):
+        cands.add(pattern[3:])
+    return any(fnmatch.fnmatch(rel_posix, c) or fnmatch.fnmatch(base, c) for c in cands)
 
 
 def build_custom_detectors(rules: list[dict]):
@@ -95,8 +121,8 @@ def _make_rule_detector(raw: dict):
     def _detector(idx: FileIndex) -> Iterator[Finding]:
         for rel in idx.rel_paths:
             rel_posix = rel.replace(os.sep, "/")
-            if not any(fnmatch.fnmatch(rel_posix, g) or fnmatch.fnmatch(os.path.basename(rel_posix), g)
-                       for g in globs):
+            base = os.path.basename(rel_posix)
+            if not any(_glob_match(rel_posix, base, g) for g in globs):
                 continue
             code = idx.read(rel)
             if pattern is None:

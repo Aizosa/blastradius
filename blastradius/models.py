@@ -58,6 +58,7 @@ class Finding:
     line: Optional[int] = None
     snippet: str = ""
     amplifiers: list[Amplifier] = field(default_factory=list)
+    content_hash: str = ""
 
     @property
     def escalated(self) -> bool:
@@ -65,14 +66,17 @@ class Finding:
 
     @property
     def fingerprint(self) -> str:
-        """Stable id for baseline matching — survives line moves and re-runs.
+        """Stable id for baseline matching.
 
-        Keyed on what the finding *is* (vector + location + the flagged code),
-        not on line number or severity, so accepting a baseline entry keeps
-        holding as long as the underlying auto-run point is unchanged.
+        Keyed on the vector, the file, and a hash of the *scanned content* that
+        determined the finding (``content_hash``) — not the line number or
+        severity. So a baseline entry keeps suppressing an accepted auto-run
+        point across line moves, but the moment that file's flagged content
+        changes (e.g. a hook is weaponised), the fingerprint changes and the
+        finding re-surfaces for review. Fail-safe: content churn re-surfaces.
         """
-        norm = " ".join((self.snippet or "").split())
-        h = hashlib.sha1(f"{self.vector_id}\0{self.path}\0{norm}".encode("utf-8", "replace"))
+        key = self.content_hash or " ".join((self.snippet or "").split())
+        h = hashlib.sha1(f"{self.vector_id}\0{self.path}\0{key}".encode("utf-8", "replace"))
         return h.hexdigest()[:16]
 
     def to_dict(self) -> dict:

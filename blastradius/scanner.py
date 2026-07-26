@@ -10,6 +10,7 @@ from .detectors import builtins as _builtins  # noqa: F401  (registers detectors
 from .detectors import extras as _extras  # noqa: F401  (registers detectors)
 from .detectors import catalog as _catalog  # noqa: F401  (registers detectors)
 from .models import Finding, Severity
+from .risk import escalate
 
 # A curated allowlist of user-level config files scanned by --include-home.
 # Kept explicit (not a walk of $HOME) so the home scan stays fast and safe.
@@ -76,7 +77,11 @@ def _apply_policy(
         if f.vector_id in ignore_v or f.fingerprint in ignore_f:
             continue
         if f.vector_id in overrides:
-            f.effective_severity = overrides[f.vector_id]
+            # Override sets the *baseline* for this vector; code-behaviour
+            # amplifiers can still escalate above it. A security tool must not
+            # let policy silently downgrade a live, amplifier-escalated RCE.
+            f.base_severity = overrides[f.vector_id]
+            f.effective_severity = escalate(overrides[f.vector_id], f.amplifiers)
         out.append(f)
     return out
 
@@ -104,7 +109,8 @@ def scan(
         home = Path.home()
         home_idx = FileIndex.from_files(home, HOME_FILES)
         for f in _run_detectors(home_idx, detectors):
-            f.path = str(home_idx.abs(f.path))  # show absolute path for home findings
+            # show a ~/-relative path: readable, portable, and no username leak
+            f.path = "~/" + f.path.replace("\\", "/")
             findings.append(f)
         files_scanned += len(home_idx.rel_paths)
 

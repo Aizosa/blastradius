@@ -8,6 +8,7 @@ every detector over a repo in one pass.
 from __future__ import annotations
 
 import fnmatch
+import hashlib
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -177,11 +178,13 @@ def build_finding(
     scan_text: str | None = None,
 ) -> Finding:
     """Assemble a Finding, running amplifiers over ``scan_text`` (defaults to code)."""
-    amps = scan_amplifiers(scan_text if scan_text is not None else code)
+    content = scan_text if scan_text is not None else code
+    amps = scan_amplifiers(content)
     base = Severity.from_hint(vec.base_severity)
     eff = escalate(base, amps)
     if not snippet:
         snippet = snippet_of(code)
+    content_hash = hashlib.sha1((content or "").encode("utf-8", "replace")).hexdigest()[:16]
     return Finding(
         vector_id=vec.vector_id,
         title=vec.title,
@@ -195,6 +198,7 @@ def build_finding(
         line=line,
         snippet=snippet,
         amplifiers=amps,
+        content_hash=content_hash,
     )
 
 

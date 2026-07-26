@@ -35,7 +35,15 @@ def write_baseline(result: ScanResult, path: str | Path) -> int:
 def load_baseline(path: str | Path) -> set[str]:
     """Return the set of accepted fingerprints from a baseline file."""
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    return {e["fingerprint"] for e in data.get("entries", []) if e.get("fingerprint")}
+    if not isinstance(data, dict):
+        raise ValueError("baseline root must be a JSON object")
+    entries = data.get("entries", [])
+    if not isinstance(entries, list):
+        raise ValueError("baseline 'entries' must be a list")
+    return {
+        e["fingerprint"] for e in entries
+        if isinstance(e, dict) and e.get("fingerprint")
+    }
 
 
 def apply_baseline(findings: list[Finding], accepted: set[str]) -> tuple[list[Finding], int]:

