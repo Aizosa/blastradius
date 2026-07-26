@@ -2,7 +2,7 @@
 
 **Find every place an AI agent — or the repo itself — can run code without your explicit approval.**
 
-<sub>💛 Support this project via four channels: **爱发电 (afdian)** — convenient for users in mainland China · **Buy Me a Coffee** — global · **GitHub Sponsors** — official · **[email me](mailto:fxy1744000@outlook.com)** — for team or enterprise sponsorship. GitHub Sponsors and Buy Me a Coffee are currently unavailable.</sub>
+<sub>💛 Support this project via four channels: **爱发电 (afdian)** — convenient for users in mainland China · **Buy Me a Coffee** — global · **GitHub Sponsors** — if you'd rather keep it on GitHub · **[email me](mailto:fxy1744000@outlook.com)** — for team or enterprise sponsorship. GitHub Sponsors and Buy Me a Coffee are currently unavailable.</sub>
 
 You point an AI coding agent (Claude Code, Cursor, Codex, aider…) at a repo, or you `git clone` something and open it. Before you type a single command, code can already run: a `.git/hooks/pre-commit`, an `npm postinstall`, a `.envrc`, a VS Code task set to `folderOpen`, a `.claude/settings.json` that pre-approves `Bash(*)`, a `CLAUDE.md` that tells the agent to `curl … | bash`. None of it shows up in a normal diff review.
 
@@ -156,7 +156,7 @@ Sponsorship funds new detectors — every feature stays free for everyone (no pa
 
 - **爱发电 (afdian)** — convenient for users in mainland China
 - **Buy Me a Coffee** — global *(not available yet)*
-- **GitHub Sponsors** — official *(not available yet)*
+- **GitHub Sponsors** — if you'd rather keep it on GitHub *(not available yet)*
 - **Email** — [fxy1744000@outlook.com](mailto:fxy1744000@outlook.com) for team & enterprise sponsorship
 
 ## License
