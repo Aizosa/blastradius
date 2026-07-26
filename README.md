@@ -153,7 +153,7 @@ Everything above works today: 39 detectors, the amplifier risk engine, five outp
 BlastRadius is free, open source, and zero-dependency, and it stays that way. There's no paid tier and no telemetry — it's funded entirely by people who find it useful. If it caught something nasty, or saved you a bad afternoon, you can chip in:
 
 - **GitHub Sponsors** — see the **Sponsor** button at the top of the repo (sponsors get a logo/link here)
-- **Buy Me a Coffee** — one-off tip
+- **Buy Me a Coffee** — 将于近期开通 (coming soon)
 - **爱发电 (afdian)** — convenient for mainland China users
 
 Every bit funds new detectors and keeps the threat catalog current. Sponsoring organisations can have their logo listed here — open an issue.
