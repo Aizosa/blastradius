@@ -2,6 +2,8 @@
 
 **Find every place an AI agent — or the repo itself — can run code without your explicit approval.**
 
+<sub>💛 Support this project via four channels: **爱发电 (afdian)** — convenient for users in mainland China · **Buy Me a Coffee** — global · **GitHub Sponsors** — official · **[email me](mailto:fxy1744000@outlook.com)** — for team or enterprise sponsorship. GitHub Sponsors and Buy Me a Coffee are currently unavailable.</sub>
+
 You point an AI coding agent (Claude Code, Cursor, Codex, aider…) at a repo, or you `git clone` something and open it. Before you type a single command, code can already run: a `.git/hooks/pre-commit`, an `npm postinstall`, a `.envrc`, a VS Code task set to `folderOpen`, a `.claude/settings.json` that pre-approves `Bash(*)`, a `CLAUDE.md` that tells the agent to `curl … | bash`. None of it shows up in a normal diff review.
 
 BlastRadius statically scans a repository for these **auto-execution points**, shows you the actual code, explains what triggers it, and ranks each by **blast radius** — how bad it gets if it fires.
@@ -150,17 +152,12 @@ Everything above works today: 39 detectors, the amplifier risk engine, five outp
 
 ## Support
 
-BlastRadius is free, open source, and zero-dependency, and it stays that way. There's no paid tier and no telemetry — it's funded entirely by people who find it useful. If it caught something nasty, or saved you a bad afternoon, you can chip in:
+Sponsorship funds new detectors — every feature stays free for everyone (no paid tier, no telemetry). Channels:
 
-- **GitHub Sponsors** — see the **Sponsor** button at the top of the repo
-- **Buy Me a Coffee** — coming soon
-- **爱发电 (afdian)** — convenient for mainland China users
-
-### For companies & teams
-
-Sponsor BlastRadius and get your logo + link featured here and in the repo. Reach out: **[fxy1744000@outlook.com](mailto:fxy1744000@outlook.com)**.
-
-Every contribution funds new detectors and keeps the threat catalog current.
+- **爱发电 (afdian)** — convenient for users in mainland China
+- **Buy Me a Coffee** — global *(not available yet)*
+- **GitHub Sponsors** — official *(not available yet)*
+- **Email** — [fxy1744000@outlook.com](mailto:fxy1744000@outlook.com) for team & enterprise sponsorship
 
 ## License
 
