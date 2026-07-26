@@ -15,7 +15,12 @@ from . import FileIndex, Vector, build_finding, detector, find_line, snippet_of
 
 
 def _git_config_files(idx: FileIndex) -> list[str]:
-    return [r for r in idx.by_name("config", ".gitconfig") if r.startswith(".git") or r == ".gitconfig"]
+    out = []
+    for r in idx.by_name("config", ".gitconfig"):
+        rp = r.replace(os.sep, "/")
+        if rp.startswith(".git") or rp.endswith("git/config") or rp == ".gitconfig":
+            out.append(r)
+    return out
 
 
 @detector

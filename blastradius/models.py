@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import enum
+import hashlib
 from dataclasses import dataclass, field, asdict
 from typing import Optional
 
@@ -62,8 +63,21 @@ class Finding:
     def escalated(self) -> bool:
         return self.effective_severity > self.base_severity
 
+    @property
+    def fingerprint(self) -> str:
+        """Stable id for baseline matching — survives line moves and re-runs.
+
+        Keyed on what the finding *is* (vector + location + the flagged code),
+        not on line number or severity, so accepting a baseline entry keeps
+        holding as long as the underlying auto-run point is unchanged.
+        """
+        norm = " ".join((self.snippet or "").split())
+        h = hashlib.sha1(f"{self.vector_id}\0{self.path}\0{norm}".encode("utf-8", "replace"))
+        return h.hexdigest()[:16]
+
     def to_dict(self) -> dict:
         d = asdict(self)
         d["base_severity"] = self.base_severity.label
         d["effective_severity"] = self.effective_severity.label
+        d["fingerprint"] = self.fingerprint
         return d

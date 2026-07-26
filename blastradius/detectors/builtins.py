@@ -100,8 +100,9 @@ def git_hooks_path(idx: FileIndex) -> Iterator[Finding]:
         "Verify the hooksPath directory is trusted and reviewed.",
         "high",
     )
-    for rel in idx.by_name("config"):
-        if not rel.startswith(".git"):
+    for rel in idx.by_name("config", ".gitconfig"):
+        rp = rel.replace(os.sep, "/")
+        if not (rp.startswith(".git") or rp.endswith("git/config") or rp == ".gitconfig"):
             continue
         code = idx.read(rel)
         m = re.search(r"(?im)^\s*hooksPath\s*=\s*(.+)$", code)

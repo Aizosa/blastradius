@@ -1,0 +1,28 @@
+{
+  "//": "Copy to .blastradius.json in your repo root. BlastRadius auto-loads it. All keys optional.",
+
+  "exclude": ["fixtures", "vendor", "third_party"],
+
+  "//ignore_vectors": "Suppress an entire detector class you've reviewed and accept.",
+  "ignore_vectors": ["go-generate"],
+
+  "//severity_overrides": "Your policy's final say on a vector's gate severity.",
+  "severity_overrides": { "npm-lifecycle-script": "high" },
+
+  "min_severity": "low",
+  "fail_on": "high",
+
+  "//custom_rules": "Your own regex detectors — the open version of 'custom detectors'.",
+  "custom_rules": [
+    {
+      "id": "internal-deploy-command",
+      "title": "Production infra command in a repo script",
+      "files": ["*.sh", "Makefile", "deploy/**"],
+      "pattern": "kubectl apply|terraform apply|helm upgrade|aws s3 sync",
+      "severity": "high",
+      "trigger": "CI or an AI agent running the script",
+      "danger": "Mutates production infrastructure without a human gate.",
+      "remediation": "Require manual approval before infra-mutating commands run."
+    }
+  ]
+}

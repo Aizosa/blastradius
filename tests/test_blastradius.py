@@ -156,5 +156,104 @@ class TestCliExit(unittest.TestCase):
         self.assertEqual(rc, 0)
 
 
+class TestBaseline(unittest.TestCase):
+    def test_write_then_suppress_all(self):
+        import tempfile, os as _os
+        from blastradius import baseline as bl
+        result = scan(FIX / "malicious-repo")
+        fd, path = tempfile.mkstemp(suffix=".json")
+        _os.close(fd)
+        try:
+            n = bl.write_baseline(result, path)
+            self.assertEqual(n, len(result.findings))
+            accepted = bl.load_baseline(path)
+            new, suppressed = bl.apply_baseline(result.findings, accepted)
+            self.assertEqual(new, [])
+            self.assertEqual(suppressed, len(result.findings))
+        finally:
+            _os.unlink(path)
+
+    def test_fingerprint_stable_across_scans(self):
+        a = {f.fingerprint for f in scan(FIX / "malicious-repo").findings}
+        b = {f.fingerprint for f in scan(FIX / "malicious-repo").findings}
+        self.assertEqual(a, b)
+        self.assertTrue(all(len(fp) == 16 for fp in a))
+
+
+class TestPolicy(unittest.TestCase):
+    def test_ignore_override_and_custom_rule(self):
+        import tempfile, json as _json, os as _os, shutil
+        from blastradius import policy
+        work = tempfile.mkdtemp()
+        try:
+            shutil.copytree(FIX / "malicious-repo", work, dirs_exist_ok=True)
+            (Path(work) / "deploy.sh").write_text("#!/bin/sh\nkubectl apply -f prod.yaml\n")
+            cfg = policy.Config(
+                ignore_vectors=["go-generate"],
+                severity_overrides={"npm-lifecycle-script": "low"},
+                custom_rules=[{
+                    "id": "internal-deploy", "files": ["*.sh"],
+                    "pattern": "kubectl apply", "severity": "high",
+                }],
+            )
+            custom = policy.build_custom_detectors(cfg.custom_rules)
+            result = scan(
+                work,
+                extra_detectors=custom,
+                severity_overrides=cfg.overrides_as_severity,
+                ignore_vectors=cfg.ignore_vectors,
+            )
+            vids = {f.vector_id for f in result.findings}
+            self.assertNotIn("go-generate", vids)
+            self.assertIn("internal-deploy", vids)
+            npm = [f for f in result.findings
+                   if f.vector_id == "npm-lifecycle-script" and f.path == "package.json"]
+            self.assertEqual(npm[0].effective_severity, Severity.LOW)
+        finally:
+            shutil.rmtree(work)
+
+    def test_load_config_roundtrip(self):
+        import tempfile, json as _json, os as _os
+        from blastradius import policy
+        fd, path = tempfile.mkstemp(suffix=".json")
+        with _os.fdopen(fd, "w") as fh:
+            _json.dump({"exclude": ["fixtures"], "fail_on": "critical",
+                        "ignore_vectors": ["go-generate"]}, fh)
+        try:
+            cfg = policy.load_config(path)
+            self.assertEqual(cfg.fail_on, "critical")
+            self.assertIn("fixtures", cfg.exclude)
+            self.assertIn("go-generate", cfg.ignore_vectors)
+        finally:
+            _os.unlink(path)
+
+
+class TestNewRenderers(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.result = scan(FIX / "malicious-repo")
+
+    def test_markdown(self):
+        buf = io.StringIO()
+        from blastradius.report import render_markdown
+        render_markdown(self.result, buf)
+        out = buf.getvalue()
+        self.assertIn("BlastRadius", out)
+        self.assertIn("CRITICAL", out)
+        self.assertIn("<details>", out)
+
+    def test_html_self_contained(self):
+        buf = io.StringIO()
+        from blastradius.report import render_html
+        render_html(self.result, buf)
+        out = buf.getvalue()
+        self.assertIn("<!doctype html>", out)
+        self.assertNotIn("http-equiv=\"refresh\"", out)
+        self.assertIn("donation-funded", out)
+        # no external scripts/styles
+        self.assertNotIn("<script src", out)
+        self.assertNotIn("<link ", out)
+
+
 if __name__ == "__main__":
     unittest.main()

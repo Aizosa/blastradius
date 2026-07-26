@@ -29,14 +29,36 @@ _MAX_READ = 512 * 1024
 class FileIndex:
     """Walks a repo once and offers cheap lookups by name / glob."""
 
-    def __init__(self, root: Path, excludes: list[str] | None = None):
+    def __init__(self, root: Path, excludes: list[str] | None = None, _skip_walk: bool = False):
         self.root = root.resolve()
         self.excludes = list(excludes or [])
         self.rel_paths: list[str] = []
         self._abs: dict[str, Path] = {}
         self._by_name: dict[str, list[str]] = {}
         self._cache: dict[str, str] = {}
-        self._build()
+        if not _skip_walk:
+            self._build()
+
+    @classmethod
+    def from_files(cls, root: Path, rel_paths: list[str]) -> "FileIndex":
+        """Build an index over an explicit list of files (relative to root).
+
+        Used for targeted scopes like --include-home, where walking the whole
+        tree would be slow and unsafe; only the listed files are indexed.
+        """
+        idx = cls(root, _skip_walk=True)
+        for rel in rel_paths:
+            abs_p = (idx.root / rel)
+            try:
+                if not abs_p.is_file():
+                    continue
+            except OSError:
+                continue
+            rel_norm = os.path.normpath(rel)
+            idx.rel_paths.append(rel_norm)
+            idx._abs[rel_norm] = abs_p
+            idx._by_name.setdefault(os.path.basename(rel_norm), []).append(rel_norm)
+        return idx
 
     def _excluded(self, rel: str) -> bool:
         rel_posix = rel.replace(os.sep, "/")

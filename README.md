@@ -43,11 +43,42 @@ blastradius .                       # scan the current repo, pretty terminal rep
 blastradius ~/downloads/some-repo   # scan before you open an untrusted clone
 blastradius . -f json               # machine-readable
 blastradius . -f sarif > br.sarif   # upload to GitHub code scanning
+blastradius . -f markdown           # drop into a PR comment / CI summary
+blastradius . -f html > report.html # self-contained shareable dashboard
+blastradius . --include-home        # also scan ~/.gitconfig, ~/.claude, ~/.npmrc, ~/.ssh/config …
 blastradius . --min-severity high   # only show high+critical
 blastradius . -q --fail-on high     # no output, just exit 1 if anything high+ (CI gate)
 ```
 
 Exit code is `0` unless a finding meets `--fail-on` (default `high`), so it drops into CI as a gate.
+
+### Gate on *new* auto-run points only (baseline)
+
+Accept the auto-run points you've already reviewed, then fail CI only when someone introduces a new one — no server, no account:
+
+```bash
+blastradius . --write-baseline .blastradius-baseline.json   # once, commit this file
+blastradius . --baseline .blastradius-baseline.json --fail-on medium   # in CI: only NEW findings count
+```
+
+Baseline entries are fingerprinted by vector + path + the flagged code, so they keep holding across re-runs and line moves.
+
+### Policy & custom rules (`.blastradius.json`)
+
+Drop a `.blastradius.json` in your repo root (auto-loaded) to encode team policy in-repo — which vectors to ignore, per-vector severity, path excludes, default gate, and your own regex detectors. See [`.blastradius.example.json`](.blastradius.example.json):
+
+```json
+{
+  "exclude": ["vendor"],
+  "ignore_vectors": ["go-generate"],
+  "severity_overrides": { "npm-lifecycle-script": "high" },
+  "fail_on": "high",
+  "custom_rules": [
+    { "id": "internal-deploy", "files": ["*.sh"], "pattern": "kubectl apply|terraform apply",
+      "severity": "high", "danger": "Mutates prod infra." }
+  ]
+}
+```
 
 ### CI gate (GitHub Actions)
 
@@ -97,7 +128,7 @@ weaponised one: pipe-to-shell, decode-then-exec, reverse shell, credential acces
 persistence, exfiltration, env-var code loaders (`NODE_OPTIONS`/`BASH_ENV`/`LD_PRELOAD`),
 hidden/bidi Unicode (Trojan Source), obfuscation, and more.
 
-Output formats: `terminal`, `json`, `sarif` (2.1.0).
+Output formats: `terminal`, `json`, `sarif` (2.1.0), `markdown`, `html`.
 
 ## Try it
 
@@ -115,7 +146,17 @@ python -m unittest discover -s tests       # or: pytest
 
 ## Status & roadmap
 
-MVP, single-machine CLI. Next: `--include-home` to scan `~/.claude`, `~/.gitconfig`, and global npm/pip config; a `--baseline` file to accept known-good findings; and more detectors from the threat catalog. Contributions and new vector reports welcome.
+Everything above works today: 39 detectors, the amplifier risk engine, five output formats, baseline gating, `.blastradius.json` policy + custom rules, and `--include-home`. Next up: more detectors from the threat catalog (terraform, ansible, MSBuild, Jupyter, conda…) and richer path-scoped policy. Contributions and new vector reports welcome — open an issue with a repo shape that should have been flagged.
+
+## Support
+
+BlastRadius is free, open source, and zero-dependency, and it stays that way. There's no paid tier and no telemetry — it's funded entirely by people who find it useful. If it caught something nasty, or saved you a bad afternoon, you can chip in:
+
+- **GitHub Sponsors** — see the **Sponsor** button at the top of the repo (sponsors get a logo/link here)
+- **Buy Me a Coffee** — one-off tip
+- **爱发电 (afdian)** — convenient for mainland China users
+
+Every bit funds new detectors and keeps the threat catalog current. Sponsoring organisations can have their logo listed here — open an issue.
 
 ## License
 
