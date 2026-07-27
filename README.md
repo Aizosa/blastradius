@@ -154,7 +154,7 @@ Everything above works today: 39 detectors, the amplifier risk engine, five outp
 
 Sponsorship funds new detectors — every feature stays free for everyone (no paid tier, no telemetry). Channels:
 
-- **爱发电 (afdian)** — convenient for users in mainland China
+- **爱发电 (afdian)** — [https://ifdian.net/a/Aizosa](https://ifdian.net/a/Aizosa), convenient for users in mainland China
 - **Buy Me a Coffee** — global *(not available yet)*
 - **GitHub Sponsors** — if you'd rather keep it on GitHub *(not available yet)*
 - **Email** — [fxy1744000@outlook.com](mailto:fxy1744000@outlook.com) for team & enterprise sponsorship
